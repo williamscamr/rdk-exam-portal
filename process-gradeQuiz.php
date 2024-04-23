@@ -1,0 +1,205 @@
+<?php
+// process-gradeQuiz.php
+session_start();
+
+if (isset($_SESSION["user_id"])) {
+	
+	require __DIR__ . "/vendor/autoload.php";
+
+	$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+	$dotenv->load();
+
+	$mysqli = new mysqli(hostname: $_ENV["DATABASE_HOSTNAME"],
+						 username: $_ENV["DATABASE_USERNAME"],
+						 password: $_ENV["DATABASE_PASSWORD"],
+						 database: $_ENV["DATABASE_NAME"]);
+						 
+	$sqlUser = "SELECT * FROM users
+			WHERE id = {$_SESSION["user_id"]}";
+	$resultUser = $mysqli->query($sqlUser);
+	$user = $resultUser->fetch_assoc();
+	
+	// check if the time for the quiz last taken is less than 24 hours from now. 
+	// do this logic in the quiz script too
+	
+	$mostRecentScoreDate = strtotime($user["most_recent_score_date"]);
+	$currentTime = time();
+	$timeDifferenceHours = ($currentTime - $mostRecentScoreDate);// / (60*60);
+	if ($timeDifferenceHours >= 24) {
+	
+    // Check if the form has been submitted
+		if ($_SERVER["REQUEST_METHOD"] == "POST") {
+			// Define an empty array to store selected options for each question
+			$selectedOptionsArray = [];
+			$correctStr = json_decode($_POST['correctStr'][0], true);
+			
+			echo("correct options: ");
+			var_dump($correctStr);
+
+			// Iterate through each question
+			for ($i = 0; $i < count($correctStr); $i++) {
+				// Construct the key name for the selected option of each question
+				$key = "q" . $i;
+				echo($key);
+
+				// Check if the selected option for the current question is set in the $_POST array
+				if (isset($_POST[$key])) {
+					// Assign the selected option to the corresponding key in the $selectedOptionsArray
+					$selectedOptionsArray[$i] = $_POST[$key];
+					
+				} else {
+					// Handle case where selected option for the current question is not set
+					$selectedOptionsArray[$i] = "No option selected";
+				}
+			}
+			echo("selected options: ");
+			var_dump($selectedOptionsArray);
+
+			// Now you have an array ($selectedOptionsArray) containing the selected options for each question
+
+			// Process the quiz data or perform any other necessary actions here
+			$totalCorrect = 0;
+			for ($i = 0; $i < count($correctStr); $i++) {
+				if ($correctStr[$i] == $selectedOptionsArray[$i]) {
+					$totalCorrect++;
+				}
+			}
+			echo("matches: " . $totalCorrect);
+			
+			// insert into or update the respective quiz#_score table based on the id of test taker todo
+			// determine threshold based on rank
+			if ($user["belt"] == "color") {
+				$threshold = count($correctStr) * 0.6;
+			}
+			else if ($user["belt"] == "1st") {
+				$threshold = count($correctStr) * 0.8;
+				echo("threshold " . $threshold . "\n");
+			}
+			else if ($user["belt"] == "2nd") {
+				$threshold = count($correctStr) * 0.9;
+			}
+			else {
+				$threshold = count($correctStr);
+			}
+			// set pass flag
+			if ($totalCorrect >= $threshold){
+				$pass_flag = true;
+			}
+			else {
+				$pass_flag = false;
+			}
+			$pass_flag_value = ($pass_flag) ? 1 : 0;
+			
+			// check if this is the first time a user has taken this quiz
+			$quizId = $mysqli->real_escape_string($_POST["quizId"]);
+			$userId = $mysqli->real_escape_string($_SESSION["user_id"]);
+			$currentDateTime = date("Y-m-d H:i:s", $currentTime);
+			
+			$checkUser = sprintf("SELECT * FROM quiz%s_score 
+				WHERE id = '%s'",
+				$quizId,
+				$userId);
+				
+				$result = $mysqli->query($checkUser);
+				
+				if ($result) {
+					// Check if any rows were returned
+					$is_available = $result->num_rows === 0;
+					echo $is_available . " it worked ";
+					echo $result->num_rows;
+					
+					// if no rows found (user not set yet)
+					if ($is_available) {
+						// insert record here
+						$sqlGrade = "INSERT INTO quiz{$quizId}_score (ID, Most_Recent_Score, Most_Recent_Date, 
+							Highest_Score, Highest_Date, Pass_Flag) 
+								VALUES (?, ?, ?, ?, ?, ?)";
+
+						$sqlGradeStmt = $mysqli->stmt_init();
+
+						if (!$sqlGradeStmt->prepare($sqlGrade)) {
+							die("SQL error: " . $mysqli->error);
+						}
+
+						$sqlGradeStmt->bind_param("iisisi",
+															$userId,
+															$totalCorrect,
+															$currentDateTime,
+															$totalCorrect,
+															$currentDateTime,
+															$pass_flag_value);				
+
+						$sqlGradeStmt->execute();
+					}
+					else {
+						$sqlGetHighest = "SELECT * FROM quiz{$quizId}_score
+							WHERE id = {$userId}";
+				
+						$resultHighest = $mysqli->query($sqlGetHighest);
+		
+						$currentScoreQuery = $resultHighest->fetch_assoc();
+						$highest_score = $currentScoreQuery["Highest_Score"];
+						echo "uhhhhhhhhhhh this is ur highest score IDIOT: " . $highest_score;
+						// this is where you're gonna check if da grade is better before inserting
+						if ($totalCorrect > $highest_score) {
+							// update everything
+							$updateStmt = $mysqli->prepare("UPDATE quiz{$quizId}_score SET
+																					Most_Recent_Score = ?,
+																					Most_Recent_Date = ?,
+																					Highest_Score = ?,
+																					Highest_Date = ?,
+																					Pass_Flag = ?
+																					WHERE ID = ?");
+							$updateStmt->bind_param("isisii",
+														$totalCorrect,
+														$currentDateTime,
+														$totalCorrect,
+														$currentDateTime,
+														$pass_flag_value,
+														$userId);
+							$updateStmt->execute();
+						} else {
+							// update only current and datetime. no point updating pass flag
+							$updateStmt = $mysqli->prepare("UPDATE quiz{$quizId}_score SET
+																					Most_Recent_Score = ?,
+																					Most_Recent_Date = ?");
+							
+							$updateStmt->bind_param("is",
+														$totalCorrect,
+														$currentDateTime);
+							$updateStmt->execute();
+						}
+						// set the most recent date so users can't take more than 1 quiz within a 24 hour period
+						$updateStmt = $mysqli->prepare("UPDATE users SET
+																		most_recent_score_date = ?
+																		WHERE id = ?");
+						$updateStmt->bind_param("si", $currentDateTime, $userId);
+						$updateStmt->execute();
+					}
+				} else {
+					// Handle query error
+					echo "Query failed: " . $mysqli->error;
+				}
+
+
+				/*$is_available = $result->num_rows === 0;
+			echo($is_available);*/
+		}
+		echo "quiz updated";
+		$questionCount = count($correctStr);
+		header("Location: quizGraded.php?c={$totalCorrect}&t={$questionCount}&b={$threshold}");
+		exit;
+		// set a header to quizResults.php with a display for their grade
+		// oh also go ahead and update the most recent score in users too
+	}
+	// redirect to index
+	$mysqli->close();
+		header("Location: index.php?e=t");
+		exit;
+} else {
+    // Destroy the session and redirect to the index page
+    session_destroy();
+    header("Location: index.php");
+    exit; // Stop further execution
+}
+?>

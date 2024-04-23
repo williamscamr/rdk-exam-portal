@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Signup</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+    <script src="https://unpkg.com/just-validate@latest/dist/just-validate.production.min.js" defer></script>
+    <script src="js/validation.js" defer></script>
+</head>
+<body>
+    
+    <h1>Signup</h1>
+    
+    <form action="process-signup.php" method="post" id="signup" novalidate>
+        <div>
+            <label for = "firstname">First Name:</label>
+            <input type="text" id = "firstname" name = "firstname">
+        </div>
+
+        <div>
+            <label for = "lastname">Last Name:</label>
+            <input type="text" id = "lastname" name = "lastname">
+        </div>
+		
+		<div>
+			<label for ="username">Username:</label>
+			<input type="text" id = "username" name = "username">
+		</div>
+		
+		<input type="hidden" id="user_type" name="user_type" value="Student">
+		
+		<!--<div>
+            <label for = "belt">Rank:</label><br>
+            <input type="radio" id = "color" name = "belt" value="Color Belt" required>
+            <label for="color">Color Belt</label><br>
+            <input type="radio" id = "first" name = "belt" value="1st Degree" required>
+            <label for="color">1st Degree Black Belt</label><br>
+            <input type="radio" id = "second" name = "belt" value="2nd Degree" required>
+            <label for="color">2nd Degree Black Belt</label><br>
+            <input type="radio" id = "third" name = "belt" value="3rd Degree" required>
+            <label for="color">3rd Degree or Above Black Belt</label><br>
+        </div>-->
+		
+		<div class="control-wrapper mb-16">
+
+		<div class="label mb-8">
+			Rank:
+		</div>
+
+		<div id="belt_radio_group">
+			<div class="control-wrapper">
+			<label class="input-label flex"
+				><input
+				type="radio"
+				id="belt_radio_group_1"
+				class="radio"
+				name="belt"
+				value="color"
+				/>
+				<span class="ml-8">Color Belt</span></label
+			>
+			</div>
+
+			<div class="control-wrapper">
+			<label class="input-label flex"
+				><input
+				type="radio"
+				id="belt_radio_group_2"
+				class="radio"
+				name="belt"
+				value="1st"
+				/>
+				<span class="ml-8">1st Degree Black Belt</span></label
+			>
+			</div>
+
+			<div class="control-wrapper">
+			<label class="input-label flex"
+				><input
+				type="radio"
+				  id="belt_radio_group_3"
+				  class="radio"
+				  name="belt"
+				  value="2nd"
+				/>
+				<span class="ml-8">2nd Degree Black Belt</span></label
+			>
+			</div>
+
+			<div class="control-wrapper">
+			  <label class="input-label flex"
+				><input
+				  type="radio"
+				  id="belt_radio_group_4"
+				  class="radio"
+				  name="belt"
+				  value="3rd"
+				/>
+				<span class="ml-8">3rd Degree Black Belt</span></label
+			>
+			</div>
+
+		</div>
+
+	</div>
+
+        <div>
+            <label for = "studio">Studio:</label><br>
+            <select name="studio" id="studio">
+				<option value="">--Please select an option--</option>
+                <option value="Alta Loma">Alta Loma</option>
+                <option value="Apple Valley">Apple Valley</option>
+                <option value="Chino Hills">Chino Hills</option>
+                <option value="Diamond Bar">Diamond Bar</option>
+                <option value="Glendora">Glendora</option>
+                <option value="Glendora West">Glendora West</option>
+                <option value="La Verne">La Verne</option>
+                <option value="Montclair">Montclair</option>
+                <option value="Ontario">Ontario</option>
+                <option value="Pomona">Pomona</option>
+                <option value="San Dimas">San Dimas/Via Verde</option>
+                <option value="Upland">Upland</option>
+                <option value="Visalia">Visalia</option>
+                <option value="Yorba Linda">Yorba Linda/Placentia</option>
+                <option value="After School">After School Martial Arts</option>
+            </select>
+        </div>
+		    
+        <div>
+            <label for="email">email</label>
+            <input type="email" id="email" name="email">
+        </div>
+        
+        <div>
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password">
+        </div>
+        
+        <div>
+            <label for="password_confirmation">Repeat password</label>
+            <input type="password" id="password_confirmation" name="password_confirmation">
+        </div>
+		
+		<p>Passwords must be:</p>
+        <ul id="passwordList">
+            <li>A minimum of 8 characters long</li>
+            <li>Include at least one (1) uppercase and lowercase letter</li>
+			<li>Include at least one (1) number</li>
+            <li>Include at least one (1) special character (!, @, #...)</li>
+        </ul>
+        
+        <button type="submit">Sign up</button>
+    </form>
+    
+</body>
+</html>
